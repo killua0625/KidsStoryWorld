@@ -492,4 +492,21 @@
       }
     });
 
-    function stopSpeech()
+    function stopSpeech() {
+      if (synth && synth.speaking) {
+        synth.cancel();
+      }
+      speechChunks = [];
+      speechIndex = 0;
+      activeSpeechIndex = -1;
+      speechPlaying = false;
+      speechElapsedBefore = 0;
+      speechTotal = 0;
+      clearInterval(speechTimer);
+      updateSpeechProgress();
+      document.getElementById("playAudioBtn").textContent = "▶️ 播放";
+      document.getElementById("speechStatus").textContent = "準備朗讀";
+    }
+  </script>
+</body>
+</html>
