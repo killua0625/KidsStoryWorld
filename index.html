@@ -259,9 +259,6 @@
       }
       updateUI();
 
-      if (selectedStars.length === 3) {
-        handleGenerate();
-      }
     }
 
     function updateUI() {
@@ -344,7 +341,9 @@
 
     // 瀏覽器語音合成
     let synth = window.speechSynthesis;
-    let utterance = null;
+    let speechChunks = [];
+    let speechIndex = 0;
+    let isSpeechPaused = false;
 
     function toggleSpeech() {
       if (!('speechSynthesis' in window)) {
@@ -353,30 +352,54 @@
       }
       if (synth.speaking && !synth.paused) {
         synth.pause();
+        isSpeechPaused = true;
         document.getElementById("playAudioBtn").textContent = "▶️ 繼續朗讀";
         return;
       }
       if (synth.paused) {
         synth.resume();
+        isSpeechPaused = false;
         document.getElementById("playAudioBtn").textContent = "⏸️ 暫停朗讀";
         return;
       }
-      const text = document.getElementById("storyTitle").textContent + "。\n" + document.getElementById("storyContent").textContent;
-      utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'zh-TW';
-      utterance.rate = 0.88;
-      utterance.onend = () => {
-        document.getElementById("playAudioBtn").textContent = "🔊 朗讀故事";
-      };
-      synth.speak(utterance);
+      if (!speechChunks.length || speechIndex >= speechChunks.length) {
+        const text = document.getElementById("storyTitle").textContent + "。\n" + document.getElementById("storyContent").textContent;
+        speechChunks = text.match(/[^。！？!?；;\n]+[。！？!?；;\n]?/g) || [text];
+        speechIndex = 0;
+      }
+      isSpeechPaused = false;
+      speakNextChunk();
       document.getElementById("playAudioBtn").textContent = "⏸️ 暫停朗讀";
+    }
+
+    function speakNextChunk() {
+      if (isSpeechPaused) return;
+      if (speechIndex >= speechChunks.length) {
+        document.getElementById("playAudioBtn").textContent = "🔊 朗讀故事";
+        return;
+      }
+      const chunk = speechChunks[speechIndex++].trim();
+      if (!chunk) { speakNextChunk(); return; }
+      const nextUtterance = new SpeechSynthesisUtterance(chunk);
+      nextUtterance.lang = 'zh-TW';
+      nextUtterance.rate = 0.88;
+      nextUtterance.onend = () => {
+        if (!isSpeechPaused) speakNextChunk();
+      };
+      nextUtterance.onerror = () => {
+        if (!isSpeechPaused) speakNextChunk();
+      };
+      synth.speak(nextUtterance);
     }
 
     function stopSpeech() {
       if (synth && synth.speaking) {
         synth.cancel();
-        document.getElementById("playAudioBtn").textContent = "🔊 朗讀故事";
       }
+      speechChunks = [];
+      speechIndex = 0;
+      isSpeechPaused = false;
+      document.getElementById("playAudioBtn").textContent = "🔊 朗讀故事";
     }
   </script>
 </body>
