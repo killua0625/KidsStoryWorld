@@ -221,15 +221,15 @@
 
   <script>
     const stars = [
-      { id: "laugh", name: "笑笑星", img: "../assets/star_laugh.png", trait: "帶來歡笑與樂觀", item: "條紋毛帽與大毛球鈴鐺" },
-      { id: "guide", name: "守路星", img: "../assets/star_guide.png", trait: "認路與辨識方向", item: "探險遮陽帽與星光地圖" },
-      { id: "courage", name: "勇氣星", img: "../assets/star_courage.png", trait: "勇敢面對黑暗未知", item: "飛行護耳帽與小護盾徽章" },
-      { id: "sing", name: "歌歌星", img: "../assets/star_sing.png", trait: "用歌聲撫平焦慮", item: "音符項鍊與唱歌大聲公" },
-      { id: "fly", name: "飛飛星", img: "../assets/star_fly.png", trait: "星空衝刺與先鋒探索", item: "復古護目鏡與圍巾" },
-      { id: "glow", name: "微光星", img: "../assets/star_glow.png", trait: "溫柔堅毅的希望光芒", item: "橡實針織帽與手提微光燈籠" },
-      { id: "calm", name: "安安星", img: "../assets/star_calm.png", trait: "放鬆情緒與好夢守護", item: "雲朵睡帽與柔軟雲朵枕頭" },
-      { id: "wait", name: "等星星", img: "../assets/star_wait.png", trait: "不慌不忙的沉穩耐心", item: "手扶小沙漏與時鐘法杖" },
-      { id: "moonlight", name: "月光星", img: "../assets/star_moonlight.png", trait: "月夜指引與守護", item: "夜空星紗披風與發光彎月魔杖" }
+      { id: "laugh", name: "笑笑星", img: "assets/star_laugh.png", trait: "帶來歡笑與樂觀", item: "條紋毛帽與大毛球鈴鐺" },
+      { id: "guide", name: "守路星", img: "assets/star_guide.png", trait: "認路與辨識方向", item: "探險遮陽帽與星光地圖" },
+      { id: "courage", name: "勇氣星", img: "assets/star_courage.png", trait: "勇敢面對黑暗未知", item: "飛行護耳帽與小護盾徽章" },
+      { id: "sing", name: "歌歌星", img: "assets/star_sing.png", trait: "用歌聲撫平焦慮", item: "音符項鍊與唱歌大聲公" },
+      { id: "fly", name: "飛飛星", img: "assets/star_fly.png", trait: "星空衝刺與先鋒探索", item: "復古護目鏡與圍巾" },
+      { id: "glow", name: "微光星", img: "assets/star_glow.png", trait: "溫柔堅毅的希望光芒", item: "橡實針織帽與手提微光燈籠" },
+      { id: "calm", name: "安安星", img: "assets/star_calm.png", trait: "放鬆情緒與好夢守護", item: "雲朵睡帽與柔軟雲朵枕頭" },
+      { id: "wait", name: "等星星", img: "assets/star_wait.png", trait: "不慌不忙的沉穩耐心", item: "手扶小沙漏與時鐘法杖" },
+      { id: "moonlight", name: "月光星", img: "assets/star_moonlight.png", trait: "月夜指引與守護", item: "夜空星紗披風與發光彎月魔杖" }
     ];
 
     let selectedStars = [];
@@ -318,11 +318,7 @@
         });
 
         const data = await response.json();
-        if (data.error) {
-          throw new Error(data.error.message);
-        }
-
-        if (data.error) throw new Error(data.error);
+        if (data.error) throw new Error(typeof data.error === "string" ? data.error : data.error.message);
         const fullStory = data.story;
         // 分割標題與內文
         const lines = fullStory.split("\n");
@@ -330,7 +326,7 @@
         let content = lines.slice(1).join("\n").trim();
         if (!content) {
           content = fullStory;
-          title = `《${s1.name}、${s2.name} 與 ${s3.name} 的星空任務》`;
+          title = `《${selectedStars[0].name}、${selectedStars[1].name} 與 ${selectedStars[2].name} 的星空任務》`;
         }
 
         document.getElementById("storyTitle").textContent = title.replace(/[#*]/g, '');
@@ -339,7 +335,7 @@
         storyArea.scrollIntoView({ behavior: 'smooth' });
 
       } catch (err) {
-        alert("呼叫 API 時發生問題：" + err.message + "\n請確認 Key 是否有效或網路連線正常。");
+        alert("故事服務發生問題：" + err.message + "\n請稍後再試。");
       } finally {
         loader.classList.remove("active");
         generateBtn.disabled = false;
