@@ -66,7 +66,7 @@
       background: var(--card-bg);
       border: 2px solid var(--card-border);
       border-radius: 16px;
-      padding: 10px 6px;
+      padding: 8px;
       text-align: center;
       cursor: pointer;
       transition: all 0.2s ease;
@@ -95,17 +95,21 @@
     }
     .star-card.selected .badge { display: block; }
     .star-card img {
-      width: 70px;
-      height: 70px;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      height: auto;
       object-fit: cover;
       border-radius: 12px;
-      margin-bottom: 6px;
+      margin-bottom: 0;
       background: rgba(0,0,0,0.2);
     }
     .star-card h4 {
       font-size: 0.95rem;
       color: var(--gold);
+      display: none;
+      margin-top: 6px;
     }
+    .star-card.selected h4 { display: block; }
 
     /* 按鈕面板 */
     .action-panel {
