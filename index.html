@@ -212,6 +212,7 @@
       cursor: pointer;
     }
     .audio-player .audio-btn { padding: 7px 12px; font-size: 0.85rem; }
+    .audio-status { text-align: center; color: #cbd5e1; font-size: 0.82rem; min-height: 1.2em; }
     .audio-btn:hover {
       background: var(--gold);
       color: #120e29;
@@ -244,6 +245,7 @@
         <input class="audio-progress" id="speechProgress" type="range" min="0" max="100" value="0" step="0.1" aria-label="朗讀進度">
         <span class="audio-time" id="speechTime">0:00 / 0:00</span>
       </div>
+      <div class="audio-status" id="speechStatus" aria-live="polite">準備朗讀</div>
     </div>
   </div>
 
@@ -404,7 +406,7 @@
 
     function prepareSpeech() {
       const text = document.getElementById("storyTitle").textContent + "。\n" + document.getElementById("storyContent").textContent;
-      speechChunks = text.match(/[^。！？!?；;\n]+[。！？!?；;\n]?/g) || [text];
+      speechChunks = text.match(/[^。！？!?；;，,\n]{1,22}[。！？!?；;，,\n]?/g) || [text];
       speechDurations = speechChunks.map(chunk => Math.max(1.2, chunk.trim().length * 0.28));
       speechTotal = speechDurations.reduce((sum, value) => sum + value, 0);
       speechIndex = 0;
@@ -423,12 +425,14 @@
         clearInterval(speechTimer);
         speechIndex = Math.max(0, activeSpeechIndex);
         document.getElementById("playAudioBtn").textContent = "▶️ 繼續";
+        document.getElementById("speechStatus").textContent = "已暫停（按繼續播放）";
         return;
       }
       if (!speechChunks.length || speechIndex >= speechChunks.length) prepareSpeech();
       speechPlaying = true;
       speakNextChunk();
       document.getElementById("playAudioBtn").textContent = "⏸️ 暫停";
+      document.getElementById("speechStatus").textContent = "正在朗讀";
     }
 
     function speakNextChunk() {
@@ -438,6 +442,7 @@
         speechElapsedBefore = speechTotal;
         updateSpeechProgress();
         document.getElementById("playAudioBtn").textContent = "▶️ 播放";
+        document.getElementById("speechStatus").textContent = "朗讀完成";
         return;
       }
       const currentIndex = speechIndex;
@@ -487,20 +492,4 @@
       }
     });
 
-    function stopSpeech() {
-      if (synth && synth.speaking) {
-        synth.cancel();
-      }
-      speechChunks = [];
-      speechIndex = 0;
-      activeSpeechIndex = -1;
-      speechPlaying = false;
-      speechElapsedBefore = 0;
-      speechTotal = 0;
-      clearInterval(speechTimer);
-      updateSpeechProgress();
-      document.getElementById("playAudioBtn").textContent = "▶️ 播放";
-    }
-  </script>
-</body>
-</html>
+    function stopSpeech()
