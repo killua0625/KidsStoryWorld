@@ -223,6 +223,7 @@
   <header>
     <h1>✦ 月亮郵局 AI 故事機 ✦</h1>
     <div class="status-bar" id="statusBar">請選取 <span>3</span> 顆星星夥伴！(已選 0/3)</div>
+    <div class="api-status" id="quotaStatus">今日剩餘故事次數：15 次</div>
   </header>
 
   <div class="grid-container" id="starGrid"></div>
@@ -243,7 +244,6 @@
         <input class="audio-progress" id="speechProgress" type="range" min="0" max="100" value="0" step="0.1" aria-label="朗讀進度">
         <span class="audio-time" id="speechTime">0:00 / 0:00</span>
       </div>
-      <button class="audio-btn" onclick="stopSpeech()">⏹️ 停止</button>
     </div>
   </div>
 
@@ -343,6 +343,9 @@
         });
 
         const data = await response.json();
+        if (typeof data.remaining === "number") {
+          document.getElementById("quotaStatus").textContent = `今日剩餘故事次數：${data.remaining} 次`;
+        }
         if (data.error) throw new Error(typeof data.error === "string" ? data.error : data.error.message);
         const fullStory = data.story;
         // 分割標題與內文
