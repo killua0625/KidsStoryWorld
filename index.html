@@ -175,8 +175,9 @@
     .loading-spinner.active { display: block; }
     .audio-controls {
       display: flex;
-      justify-content: center;
-      gap: 12px;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 8px;
     }
     .audio-btn {
       padding: 10px 20px;
@@ -188,6 +189,23 @@
       cursor: pointer;
       font-weight: bold;
     }
+    .audio-player {
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 12px;
+      border: 1px solid rgba(253, 230, 138, 0.5);
+      border-radius: 16px;
+      background: rgba(0, 0, 0, 0.18);
+    }
+    .audio-time { min-width: 42px; color: #cbd5e1; font-size: 0.78rem; text-align: center; }
+    .audio-progress {
+      width: 100%;
+      accent-color: var(--gold);
+      cursor: pointer;
+    }
+    .audio-player .audio-btn { padding: 7px 12px; font-size: 0.85rem; }
     .audio-btn:hover {
       background: var(--gold);
       color: #120e29;
@@ -214,7 +232,11 @@
     <h3 class="story-title" id="storyTitle"></h3>
     <div class="story-text" id="storyContent"></div>
     <div class="audio-controls">
-      <button class="audio-btn" id="playAudioBtn" onclick="toggleSpeech()">🔊 朗讀故事</button>
+      <div class="audio-player" aria-label="故事朗讀播放器">
+        <button class="audio-btn" id="playAudioBtn" onclick="toggleSpeech()">▶️ 播放</button>
+        <input class="audio-progress" id="speechProgress" type="range" min="0" max="100" value="0" step="0.1" aria-label="朗讀進度">
+        <span class="audio-time" id="speechTime">0:00 / 0:00</span>
+      </div>
       <button class="audio-btn" onclick="stopSpeech()">⏹️ 停止</button>
     </div>
   </div>
@@ -343,54 +365,118 @@
     let synth = window.speechSynthesis;
     let speechChunks = [];
     let speechIndex = 0;
-    let isSpeechPaused = false;
+    let speechPlaying = false;
+    let speechTimer = null;
+    let speechStartedAt = 0;
+    let speechElapsedBefore = 0;
+    let speechDurations = [];
+    let speechTotal = 0;
+    let activeSpeechIndex = -1;
+
+    function formatTime(seconds) {
+      seconds = Math.max(0, Math.round(seconds));
+      return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
+    }
+
+    function updateSpeechProgress(seconds = speechElapsedBefore) {
+      const progress = document.getElementById("speechProgress");
+      const time = document.getElementById("speechTime");
+      const safe = Math.min(speechTotal, Math.max(0, seconds));
+      progress.value = speechTotal ? (safe / speechTotal) * 100 : 0;
+      time.textContent = `${formatTime(safe)} / ${formatTime(speechTotal)}`;
+    }
+
+    function chooseStoryVoice() {
+      const voices = synth.getVoices();
+      return voices.find(v => /Google.*(國語|普通話|Mandarin)|Microsoft.*(HsiaoChen|Xiaoxiao|Yunxi)/i.test(v.name))
+        || voices.find(v => /zh-TW|zh-CN/i.test(v.lang))
+        || voices.find(v => /^zh/i.test(v.lang));
+    }
+
+    function prepareSpeech() {
+      const text = document.getElementById("storyTitle").textContent + "。\n" + document.getElementById("storyContent").textContent;
+      speechChunks = text.match(/[^。！？!?；;\n]+[。！？!?；;\n]?/g) || [text];
+      speechDurations = speechChunks.map(chunk => Math.max(1.2, chunk.trim().length * 0.28));
+      speechTotal = speechDurations.reduce((sum, value) => sum + value, 0);
+      speechIndex = 0;
+      speechElapsedBefore = 0;
+      updateSpeechProgress();
+    }
 
     function toggleSpeech() {
       if (!('speechSynthesis' in window)) {
         alert("此瀏覽器不支援語音朗讀，請使用 Chrome 或 Edge！");
         return;
       }
-      if (synth.speaking && !synth.paused) {
-        synth.pause();
-        isSpeechPaused = true;
-        document.getElementById("playAudioBtn").textContent = "▶️ 繼續朗讀";
+      if (speechPlaying) {
+        synth.cancel();
+        speechPlaying = false;
+        clearInterval(speechTimer);
+        speechIndex = Math.max(0, activeSpeechIndex);
+        document.getElementById("playAudioBtn").textContent = "▶️ 繼續";
         return;
       }
-      if (synth.paused) {
-        synth.resume();
-        isSpeechPaused = false;
-        document.getElementById("playAudioBtn").textContent = "⏸️ 暫停朗讀";
-        return;
-      }
-      if (!speechChunks.length || speechIndex >= speechChunks.length) {
-        const text = document.getElementById("storyTitle").textContent + "。\n" + document.getElementById("storyContent").textContent;
-        speechChunks = text.match(/[^。！？!?；;\n]+[。！？!?；;\n]?/g) || [text];
-        speechIndex = 0;
-      }
-      isSpeechPaused = false;
+      if (!speechChunks.length || speechIndex >= speechChunks.length) prepareSpeech();
+      speechPlaying = true;
       speakNextChunk();
-      document.getElementById("playAudioBtn").textContent = "⏸️ 暫停朗讀";
+      document.getElementById("playAudioBtn").textContent = "⏸️ 暫停";
     }
 
     function speakNextChunk() {
-      if (isSpeechPaused) return;
       if (speechIndex >= speechChunks.length) {
-        document.getElementById("playAudioBtn").textContent = "🔊 朗讀故事";
+        speechPlaying = false;
+        clearInterval(speechTimer);
+        speechElapsedBefore = speechTotal;
+        updateSpeechProgress();
+        document.getElementById("playAudioBtn").textContent = "▶️ 播放";
         return;
       }
+      const currentIndex = speechIndex;
+      activeSpeechIndex = currentIndex;
       const chunk = speechChunks[speechIndex++].trim();
       if (!chunk) { speakNextChunk(); return; }
       const nextUtterance = new SpeechSynthesisUtterance(chunk);
-      nextUtterance.lang = 'zh-TW';
-      nextUtterance.rate = 0.88;
+      const voice = chooseStoryVoice();
+      if (voice) nextUtterance.voice = voice;
+      nextUtterance.lang = voice?.lang || 'zh-TW';
+      nextUtterance.rate = 0.82;
+      nextUtterance.pitch = 1.05;
+      speechStartedAt = Date.now();
+      clearInterval(speechTimer);
+      speechTimer = setInterval(() => {
+        updateSpeechProgress(speechElapsedBefore + (Date.now() - speechStartedAt) / 1000);
+      }, 100);
       nextUtterance.onend = () => {
-        if (!isSpeechPaused) speakNextChunk();
+        clearInterval(speechTimer);
+        speechElapsedBefore += speechDurations[currentIndex] || 0;
+        if (speechPlaying) speakNextChunk();
       };
       nextUtterance.onerror = () => {
-        if (!isSpeechPaused) speakNextChunk();
+        clearInterval(speechTimer);
+        if (speechPlaying) speakNextChunk();
       };
       synth.speak(nextUtterance);
     }
+
+    document.getElementById("speechProgress").addEventListener("input", event => {
+      if (!speechChunks.length) return;
+      const wasPlaying = speechPlaying;
+      synth.cancel();
+      speechPlaying = false;
+      clearInterval(speechTimer);
+      const target = (Number(event.target.value) / 100) * speechTotal;
+      speechElapsedBefore = 0;
+      speechIndex = 0;
+      activeSpeechIndex = -1;
+      while (speechIndex < speechDurations.length && speechElapsedBefore + speechDurations[speechIndex] < target) {
+        speechElapsedBefore += speechDurations[speechIndex++];
+      }
+      updateSpeechProgress(target);
+      if (wasPlaying) {
+        speechPlaying = true;
+        speakNextChunk();
+      }
+    });
 
     function stopSpeech() {
       if (synth && synth.speaking) {
@@ -398,8 +484,13 @@
       }
       speechChunks = [];
       speechIndex = 0;
-      isSpeechPaused = false;
-      document.getElementById("playAudioBtn").textContent = "🔊 朗讀故事";
+      activeSpeechIndex = -1;
+      speechPlaying = false;
+      speechElapsedBefore = 0;
+      speechTotal = 0;
+      clearInterval(speechTimer);
+      updateSpeechProgress();
+      document.getElementById("playAudioBtn").textContent = "▶️ 播放";
     }
   </script>
 </body>
