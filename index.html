@@ -171,6 +171,26 @@
       white-space: pre-wrap;
       margin-bottom: 24px;
     }
+    .album-entry { width: 100%; max-width: 480px; margin: 0 auto 18px; }
+    .album-open { width: 100%; background: #fff4d6; color: #4a2b20; border: 0; box-shadow: 0 5px 14px rgba(0,0,0,.25); }
+    .story-banner { width: 100%; max-height: 280px; object-fit: cover; border-radius: 18px; margin-bottom: 14px; display: none; box-shadow: 0 6px 18px rgba(0,0,0,.3); }
+    .story-banner.visible { display: block; }
+    .story-meta { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 14px; }
+    .companion-tag { border-radius: 999px; padding: 7px 12px; background: #fff4d6; color: #4a2b20; font-size: .85rem; }
+    .album-modal { display: none; position: fixed; inset: 0; z-index: 20; background: rgba(12, 8, 31, .86); padding: 24px 14px; overflow-y: auto; }
+    .album-modal.open { display: block; }
+    .album-panel { max-width: 760px; margin: 0 auto; background: #fff8e8; color: #4a2b20; border-radius: 24px; padding: 20px; min-height: 80vh; }
+    .album-heading { display:flex; justify-content:space-between; align-items:center; color:#6b3f2f; margin-bottom: 14px; }
+    .album-close { border:0; background:#f2c6a0; color:#4a2b20; border-radius:50%; width:34px; height:34px; cursor:pointer; }
+    .album-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:20px; }
+    .stamp-card { background:white; padding:10px 10px 14px; box-shadow:0 5px 14px rgba(74,43,32,.25); transform:rotate(var(--tilt)); cursor:pointer; }
+    .stamp-card img { width:100%; aspect-ratio:4/3; object-fit:cover; display:block; margin-bottom:10px; }
+    .stamp-date { font-size:.8rem; color:#8a6856; }
+    .stamp-title { font-weight:bold; margin-top:4px; }
+    .stamp-companions { font-size:.8rem; margin-top:5px; color:#6b3f2f; }
+    .album-empty { text-align:center; padding:70px 10px; color:#8a6856; }
+    .save-toast { position:fixed; left:50%; bottom:24px; transform:translate(-50%,20px); opacity:0; pointer-events:none; background:#fff4d6; color:#4a2b20; padding:12px 18px; border-radius:999px; box-shadow:0 5px 16px rgba(0,0,0,.3); transition:.25s; z-index:30; }
+    .save-toast.show { opacity:1; transform:translate(-50%,0); }
     .loading-spinner {
       text-align: center;
       padding: 20px;
@@ -229,6 +249,10 @@
 
   <div class="grid-container" id="starGrid"></div>
 
+  <div class="album-entry">
+    <button class="btn album-open" onclick="openAlbum()">📬 翻開月亮相簿／我的冒險回憶</button>
+  </div>
+
   <div class="action-panel">
     <button class="btn btn-reset" onclick="resetSelection()">重選</button>
     <button class="btn btn-create" id="generateBtn" disabled onclick="handleGenerate()">✨ 創作專屬故事</button>
@@ -237,6 +261,9 @@
   <div class="loading-spinner" id="loader">✨ 月亮郵局正在為三顆星星編織全新故事中，請稍候...</div>
 
   <div class="story-card" id="storyArea">
+    <img class="story-banner" id="storyBanner" alt="本次冒險插畫">
+    <div class="story-meta" id="storyMeta"></div>
+    <button class="audio-btn" id="saveStoryBtn" onclick="saveCurrentStory()">💾 收藏到魔法相簿</button>
     <h3 class="story-title" id="storyTitle"></h3>
     <div class="story-text" id="storyContent"></div>
     <div class="audio-controls">
@@ -248,6 +275,14 @@
       <div class="audio-status" id="speechStatus" aria-live="polite">準備朗讀</div>
     </div>
   </div>
+
+  <div class="album-modal" id="albumModal" onclick="closeAlbumOnBackdrop(event)">
+    <section class="album-panel">
+      <div class="album-heading"><h2>🌙 月亮集郵冊</h2><button class="album-close" onclick="closeAlbum()">×</button></div>
+      <div class="album-grid" id="albumGrid"></div>
+    </section>
+  </div>
+  <div class="save-toast" id="saveToast">✨ 已收藏到月亮集郵冊！</div>
 
   <script>
     const stars = [
@@ -263,6 +298,41 @@
     ];
 
     let selectedStars = [];
+    let currentStoryRecord = null;
+    const ALBUM_KEY = "moon_story_album_v1";
+
+    function getAlbum() {
+      try { return JSON.parse(localStorage.getItem(ALBUM_KEY) || "[]"); } catch { return []; }
+    }
+    function saveAlbum(records) { localStorage.setItem(ALBUM_KEY, JSON.stringify(records.slice(0, 50))); }
+    function formatStoryDate(value) {
+      const date = value ? new Date(value) : new Date();
+      if (Number.isNaN(date.getTime())) return String(value || "");
+      return date.toLocaleDateString("zh-TW", { year: "numeric", month: "2-digit", day: "2-digit" }).replaceAll("/", ".");
+    }
+    function showToast(message) {
+      const toast = document.getElementById("saveToast"); toast.textContent = message; toast.classList.add("show");
+      setTimeout(() => toast.classList.remove("show"), 2200);
+    }
+    function saveCurrentStory() {
+      if (!currentStoryRecord) return;
+      const records = getAlbum();
+      if (records.some(item => item.id === currentStoryRecord.id)) { showToast("🌟 這個故事已經收藏過了！"); return; }
+      saveAlbum([currentStoryRecord, ...records]); renderAlbum(); showToast("✨ 已收藏到月亮集郵冊！");
+    }
+    function renderAlbum() {
+      const grid = document.getElementById("albumGrid"); const records = getAlbum(); grid.innerHTML = "";
+      if (!records.length) { grid.innerHTML = '<div class="album-empty">📭 還沒有冒險紀念郵票<br>產生故事後，按下收藏就會出現在這裡。</div>'; return; }
+      records.forEach((item, index) => {
+        const card = document.createElement("article"); card.className = "stamp-card"; card.style.setProperty("--tilt", `${[-2, 1.5, -1, 2][index % 4]}deg`);
+        card.innerHTML = `<img src="${item.imageUrl || "assets/star_moonlight.png"}" alt="${item.title}"><div class="stamp-date">📅 ${formatStoryDate(item.date)}</div><div class="stamp-title">${item.title}</div><div class="stamp-companions">${(item.companions || []).join("、")}</div>`;
+        card.onclick = () => window.open(item.imageUrl || "assets/star_moonlight.png", "_blank"); grid.appendChild(card);
+      });
+    }
+    function openAlbum() { renderAlbum(); document.getElementById("albumModal").classList.add("open"); }
+    function closeAlbum() { document.getElementById("albumModal").classList.remove("open"); }
+    function closeAlbumOnBackdrop(event) { if (event.target.id === "albumModal") closeAlbum(); }
+    renderAlbum();
     const storyClientId = localStorage.getItem("moon_story_client_id") || (() => {
       const id = `${crypto.randomUUID().replace(/-/g, "")}${Date.now()}`;
       localStorage.setItem("moon_story_client_id", id);
@@ -373,7 +443,7 @@
           document.getElementById("quotaStatus").textContent = `今日剩餘故事次數：${data.remaining} 次`;
         }
         if (data.error) throw new Error(typeof data.error === "string" ? data.error : data.error.message);
-        const fullStory = data.story;
+        const fullStory = data.story || "";
         // 分割標題與內文
         const lines = fullStory.split("\n");
         let title = lines[0];
@@ -383,8 +453,14 @@
           title = `《${selectedStars[0].name}、${selectedStars[1].name} 與 ${selectedStars[2].name} 的星空任務》`;
         }
 
-        document.getElementById("storyTitle").textContent = title.replace(/[#*]/g, '');
+        title = (data.title || title).replace(/[#*]/g, '');
+        const companions = data.companions || selectedStars.map(star => star.name);
+        currentStoryRecord = { id: `${Date.now()}-${title}`, title, story: content, imageUrl: data.imageUrl || "", date: data.date || new Date().toISOString(), companions };
+        document.getElementById("storyTitle").textContent = title;
         document.getElementById("storyContent").textContent = content;
+        const banner = document.getElementById("storyBanner");
+        if (data.imageUrl) { banner.src = data.imageUrl; banner.classList.add("visible"); } else { banner.removeAttribute("src"); banner.classList.remove("visible"); }
+        document.getElementById("storyMeta").innerHTML = companions.map(name => `<span class="companion-tag">這次的冒險夥伴：${name}</span>`).join("");
         storyArea.classList.add("active");
         storyArea.scrollIntoView({ behavior: 'smooth' });
 
