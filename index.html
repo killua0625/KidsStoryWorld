@@ -442,7 +442,7 @@
         if (typeof data.remaining === "number") {
           document.getElementById("quotaStatus").textContent = `今日剩餘故事次數：${data.remaining} 次`;
         }
-        if (data.error) throw new Error(typeof data.error === "string" ? data.error : data.error.message);
+        if (!response.ok || data.error) throw new Error(typeof data.error === "string" ? data.error : (data.error?.message || `Worker 請求失敗（HTTP ${response.status}）`));
         const fullStory = data.story || "";
         // 分割標題與內文
         const lines = fullStory.split("\n");
