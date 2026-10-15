@@ -263,10 +263,18 @@
     ];
 
     let selectedStars = [];
+    const storyClientId = localStorage.getItem("moon_story_client_id") || (() => {
+      const id = `${crypto.randomUUID().replace(/-/g, "")}${Date.now()}`;
+      localStorage.setItem("moon_story_client_id", id);
+      return id;
+    })();
 
     // 初始化渲染
     const grid = document.getElementById("starGrid");
     stars.forEach(star => {
+      const preload = new Image();
+      preload.decoding = "async";
+      preload.src = star.img;
       const card = document.createElement("div");
       card.className = "star-card";
       card.id = `card-${star.id}`;
@@ -283,7 +291,9 @@
 
     async function loadQuotaStatus() {
       try {
-        const response = await fetch("https://kids-story-api.killua0625.workers.dev/usage");
+        const response = await fetch("https://kids-story-api.killua0625.workers.dev/usage", {
+          headers: { "X-Story-Client": storyClientId }
+        });
         const data = await response.json();
         if (typeof data.remaining === "number") {
           document.getElementById("quotaStatus").textContent = `今日剩餘故事次數：${data.remaining} 次`;
@@ -353,7 +363,8 @@
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            starIds: selectedStars.map(star => star.id)
+            starIds: selectedStars.map(star => star.id),
+            clientId: storyClientId
           })
         });
 
@@ -419,7 +430,7 @@
 
     function prepareSpeech() {
       const text = document.getElementById("storyTitle").textContent + "。\n" + document.getElementById("storyContent").textContent;
-      speechChunks = text.match(/[^。！？!?；;，,\n]{1,22}[。！？!?；;，,\n]?/g) || [text];
+      speechChunks = text.match(/[^。！？!?；;，,\n]+[。！？!?；;，,\n]?/g) || [text];
       speechDurations = speechChunks.map(chunk => Math.max(1.2, chunk.trim().length * 0.28));
       speechTotal = speechDurations.reduce((sum, value) => sum + value, 0);
       speechIndex = 0;
@@ -466,7 +477,7 @@
       const voice = chooseStoryVoice();
       if (voice) nextUtterance.voice = voice;
       nextUtterance.lang = voice?.lang || 'zh-TW';
-      nextUtterance.rate = 0.82;
+      nextUtterance.rate = 0.7;
       nextUtterance.pitch = 1.05;
       speechStartedAt = Date.now();
       clearInterval(speechTimer);
