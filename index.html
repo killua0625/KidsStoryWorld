@@ -173,6 +173,7 @@
     }
     .album-entry { width: 100%; max-width: 480px; margin: 0 auto 18px; }
     .album-open { width: 100%; background: #fff4d6; color: #4a2b20; border: 0; box-shadow: 0 5px 14px rgba(0,0,0,.25); }
+    .history-open { width: 100%; background: #f7eee2; color: #4a2b20; border: 0; box-shadow: 0 5px 14px rgba(0,0,0,.18); }
     .story-banner { width: 100%; max-height: 280px; object-fit: cover; border-radius: 18px; margin-bottom: 14px; display: none; box-shadow: 0 6px 18px rgba(0,0,0,.3); }
     .story-banner.visible { display: block; }
     .story-meta { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 14px; }
@@ -192,6 +193,22 @@
     .album-empty { text-align:center; padding:70px 10px; color:#8a6856; }
     .save-toast { position:fixed; left:50%; bottom:24px; transform:translate(-50%,20px); opacity:0; pointer-events:none; background:#fff4d6; color:#4a2b20; padding:12px 18px; border-radius:999px; box-shadow:0 5px 16px rgba(0,0,0,.3); transition:.25s; z-index:30; }
     .save-toast.show { opacity:1; transform:translate(-50%,0); }
+    .history-modal { display:none; position:fixed; inset:0; z-index:21; background:rgba(12,8,31,.86); padding:24px 14px; overflow-y:auto; }
+    .history-modal.open { display:block; }
+    .history-panel { max-width:620px; margin:0 auto; background:#fffaf0; color:#4a2b20; border-radius:22px; padding:20px; min-height:70vh; }
+    .history-heading { display:flex; justify-content:space-between; align-items:center; color:#5d4037; margin-bottom:16px; }
+    .history-list { display:flex; flex-direction:column; gap:11px; }
+    .history-item { width:100%; text-align:left; border:1px solid #dfd0bd; border-radius:14px; background:#fff; padding:14px 16px; color:#4a2b20; cursor:pointer; box-shadow:0 2px 7px rgba(74,43,32,.1); }
+    .history-item:hover { background:#fff4df; border-color:#c9a77d; }
+    .history-item-title { font-size:1.05rem; font-weight:bold; margin-bottom:7px; }
+    .history-item-meta { color:#806b5b; font-size:.86rem; }
+    .history-empty, .history-loading { text-align:center; color:#806b5b; padding:60px 12px; }
+    .history-reader { display:none; }
+    .history-reader.open { display:block; }
+    .history-reader-title { font-size:1.4rem; line-height:1.5; color:#5d4037; margin-bottom:12px; }
+    .history-reader-meta { color:#806b5b; font-size:.9rem; margin-bottom:16px; }
+    .history-reader-text { white-space:pre-wrap; line-height:1.95; font-size:1.08rem; }
+    .history-back { border:0; background:#ead8c3; color:#4a2b20; border-radius:999px; padding:9px 14px; cursor:pointer; margin-bottom:14px; }
     .loading-spinner {
       text-align: center;
       padding: 20px;
@@ -252,6 +269,7 @@
 
   <div class="album-entry">
     <button class="btn album-open" onclick="openAlbum()">📬 翻開月亮集郵冊</button>
+    <button class="btn history-open" onclick="openHistory()">📜 讀以前的冒險故事</button>
   </div>
 
   <div class="action-panel">
@@ -281,6 +299,20 @@
     <section class="album-panel">
       <div class="album-heading"><h2>🌙 月亮集郵冊</h2><button class="album-close" onclick="closeAlbum()">×</button></div>
       <div class="album-grid" id="albumGrid"></div>
+    </section>
+  </div>
+  <div class="history-modal" id="historyModal" onclick="closeHistoryOnBackdrop(event)">
+    <section class="history-panel">
+      <div class="history-heading"><h2>📖 冒險故事回憶錄</h2><button class="album-close" onclick="closeHistory()">×</button></div>
+      <div id="historyListView">
+        <div class="history-list" id="historyList"></div>
+      </div>
+      <div class="history-reader" id="historyReader">
+        <button class="history-back" onclick="showHistoryList()">← 返回故事清單</button>
+        <h3 class="history-reader-title" id="historyReaderTitle"></h3>
+        <div class="history-reader-meta" id="historyReaderMeta"></div>
+        <div class="history-reader-text" id="historyReaderText"></div>
+      </div>
     </section>
   </div>
   <div class="save-toast" id="saveToast">✨ 已收藏到月亮集郵冊！</div>
@@ -315,7 +347,7 @@
       const toast = document.getElementById("saveToast"); toast.textContent = message; toast.classList.add("show");
       setTimeout(() => toast.classList.remove("show"), 2200);
     }
-    async function saveCurrentStory() {
+    async function saveCurrentStory(silent = false) {
       if (!currentStoryRecord) return;
       const records = getLocalAlbum();
       try {
@@ -324,8 +356,8 @@
         if (!response.ok || data.error) throw new Error(data.error || "相簿儲存失敗");
         saveAlbum(data.album || [currentStoryRecord, ...records]);
         await renderAlbum();
-        showToast(records.some(item => item.id === currentStoryRecord.id) ? "✨ 已同步到雲端月亮集郵冊！" : "✨ 已收藏到雲端月亮集郵冊！");
-      } catch { saveAlbum([currentStoryRecord, ...records]); showToast("⚠️ 雲端收藏失敗，已暫存本機"); }
+        if (!silent) showToast(records.some(item => item.id === currentStoryRecord.id) ? "✨ 已同步到雲端月亮集郵冊！" : "✨ 已收藏到雲端月亮集郵冊！");
+      } catch { saveAlbum([currentStoryRecord, ...records]); if (!silent) showToast("⚠️ 雲端收藏失敗，已暫存本機"); }
     }
     async function renderAlbum() {
       const grid = document.getElementById("albumGrid"); let records = [];
@@ -348,6 +380,54 @@
     function openAlbum() { renderAlbum(); document.getElementById("albumModal").classList.add("open"); }
     function closeAlbum() { document.getElementById("albumModal").classList.remove("open"); }
     function closeAlbumOnBackdrop(event) { if (event.target.id === "albumModal") closeAlbum(); }
+    async function getAlbumRecords() {
+      try {
+        const response = await fetch("https://kids-story-api.killua0625.workers.dev/api/family_album");
+        const data = await response.json();
+        if (!response.ok || data.error) throw new Error(data.error || "故事讀取失敗");
+        const records = Array.isArray(data.album) ? data.album : [];
+        saveAlbum(records);
+        return records;
+      } catch { return getLocalAlbum(); }
+    }
+    async function openHistory() {
+      document.getElementById("historyModal").classList.add("open");
+      showHistoryList();
+      const list = document.getElementById("historyList");
+      list.innerHTML = '<div class="history-loading">🌙 正在翻找月亮郵局的故事紀錄...</div>';
+      const records = await getAlbumRecords();
+      list.innerHTML = "";
+      if (!records.length) {
+        list.innerHTML = '<div class="history-empty">📭 還沒有以前的冒險故事<br>收藏故事後，就會在這裡留下紀錄。</div>';
+        return;
+      }
+      records.forEach(record => {
+        const item = document.createElement("button");
+        item.className = "history-item";
+        const title = document.createElement("div");
+        title.className = "history-item-title";
+        title.textContent = record.title || "月亮郵局的冒險";
+        const meta = document.createElement("div");
+        meta.className = "history-item-meta";
+        meta.textContent = `📅 ${formatStoryDate(record.date)} ｜ 🐾 ${(record.companions || []).join("、")}`;
+        item.append(title, meta);
+        item.onclick = () => openHistoryStory(record);
+        list.appendChild(item);
+      });
+    }
+    function openHistoryStory(record) {
+      document.getElementById("historyListView").style.display = "none";
+      document.getElementById("historyReader").classList.add("open");
+      document.getElementById("historyReaderTitle").textContent = record.title || "月亮郵局的冒險";
+      document.getElementById("historyReaderMeta").textContent = `🏷️ ${record.theme || "月亮郵局冒險"} ｜ 📅 ${formatStoryDate(record.date)} ｜ 🐾 ${(record.companions || []).join("、")}`;
+      document.getElementById("historyReaderText").textContent = record.story || "這篇故事還沒有保存文字內容。";
+    }
+    function showHistoryList() {
+      document.getElementById("historyListView").style.display = "block";
+      document.getElementById("historyReader").classList.remove("open");
+    }
+    function closeHistory() { document.getElementById("historyModal").classList.remove("open"); }
+    function closeHistoryOnBackdrop(event) { if (event.target.id === "historyModal") closeHistory(); }
     renderAlbum();
     const storyClientId = localStorage.getItem("moon_story_client_id") || (() => {
       const id = `${crypto.randomUUID().replace(/-/g, "")}${Date.now()}`;
@@ -483,6 +563,8 @@
         document.getElementById("storyMeta").innerHTML = `<span class="theme-tag">🏷️ 主題：${theme}</span>` + companions.map(name => `<span class="companion-tag">這次的冒險夥伴：${name}</span>`).join("");
         storyArea.classList.add("active");
         storyArea.scrollIntoView({ behavior: 'smooth' });
+        // 每次產生成功後立即同步到雲端，讓不同手機、電腦都能看到同一份故事紀錄。
+        void saveCurrentStory(true);
 
       } catch (err) {
         alert("故事服務發生問題：" + err.message + "\n請稍後再試。");
