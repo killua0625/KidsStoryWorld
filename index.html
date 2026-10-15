@@ -177,6 +177,7 @@
     .story-banner.visible { display: block; }
     .story-meta { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 14px; }
     .companion-tag { border-radius: 999px; padding: 7px 12px; background: #fff4d6; color: #4a2b20; font-size: .85rem; }
+    .theme-tag { border-radius: 999px; padding: 7px 12px; background: #f7d6e8; color: #63344d; font-size: .9rem; font-weight: bold; }
     .album-modal { display: none; position: fixed; inset: 0; z-index: 20; background: rgba(12, 8, 31, .86); padding: 24px 14px; overflow-y: auto; }
     .album-modal.open { display: block; }
     .album-panel { max-width: 760px; margin: 0 auto; background: #fff8e8; color: #4a2b20; border-radius: 24px; padding: 20px; min-height: 80vh; }
@@ -301,7 +302,7 @@
     let currentStoryRecord = null;
     const ALBUM_KEY = "moon_story_album_v1";
 
-    function getAlbum() {
+    function getLocalAlbum() {
       try { return JSON.parse(localStorage.getItem(ALBUM_KEY) || "[]"); } catch { return []; }
     }
     function saveAlbum(records) { localStorage.setItem(ALBUM_KEY, JSON.stringify(records.slice(0, 50))); }
@@ -314,18 +315,32 @@
       const toast = document.getElementById("saveToast"); toast.textContent = message; toast.classList.add("show");
       setTimeout(() => toast.classList.remove("show"), 2200);
     }
-    function saveCurrentStory() {
+    async function saveCurrentStory() {
       if (!currentStoryRecord) return;
-      const records = getAlbum();
+      const records = getLocalAlbum();
       if (records.some(item => item.id === currentStoryRecord.id)) { showToast("🌟 這個故事已經收藏過了！"); return; }
-      saveAlbum([currentStoryRecord, ...records]); renderAlbum(); showToast("✨ 已收藏到月亮集郵冊！");
+      try {
+        const response = await fetch("https://kids-story-api.killua0625.workers.dev/api/family_album", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(currentStoryRecord) });
+        const data = await response.json();
+        if (!response.ok || data.error) throw new Error(data.error || "相簿儲存失敗");
+        saveAlbum(data.album || [currentStoryRecord, ...records]); await renderAlbum(); showToast("✨ 已收藏到雲端月亮集郵冊！");
+      } catch { saveAlbum([currentStoryRecord, ...records]); showToast("⚠️ 雲端收藏失敗，已暫存本機"); }
     }
-    function renderAlbum() {
-      const grid = document.getElementById("albumGrid"); const records = getAlbum(); grid.innerHTML = "";
+    async function renderAlbum() {
+      const grid = document.getElementById("albumGrid"); let records = [];
+      try {
+        const response = await fetch("https://kids-story-api.killua0625.workers.dev/api/family_album");
+        const data = await response.json();
+        if (!response.ok || data.error) throw new Error(data.error || "相簿讀取失敗");
+        records = Array.isArray(data.album) ? data.album : [];
+        saveAlbum(records);
+      }
+      catch { records = getLocalAlbum(); }
+      grid.innerHTML = "";
       if (!records.length) { grid.innerHTML = '<div class="album-empty">📭 還沒有冒險紀念郵票<br>產生故事後，按下收藏就會出現在這裡。</div>'; return; }
       records.forEach((item, index) => {
         const card = document.createElement("article"); card.className = "stamp-card"; card.style.setProperty("--tilt", `${[-2, 1.5, -1, 2][index % 4]}deg`);
-        card.innerHTML = `<img src="${item.imageUrl || "assets/star_moonlight.png"}" alt="${item.title}"><div class="stamp-date">📅 ${formatStoryDate(item.date)}</div><div class="stamp-title">${item.title}</div><div class="stamp-companions">${(item.companions || []).join("、")}</div>`;
+        card.innerHTML = `<img src="${item.imageUrl || "assets/star_moonlight.png"}" alt="${item.title}"><div class="stamp-date">📅 ${formatStoryDate(item.date)}</div><div class="stamp-title">🏷️ ${item.theme || "月亮郵局冒險"}</div><div class="stamp-companions">${item.title}<br>${(item.companions || []).join("、")}</div>`;
         card.onclick = () => window.open(item.imageUrl || "assets/star_moonlight.png", "_blank"); grid.appendChild(card);
       });
     }
@@ -448,6 +463,9 @@
         const lines = fullStory.split("\n");
         let title = lines[0];
         let content = lines.slice(1).join("\n").trim();
+        if (/^主題\s*[：:]/.test(lines[0]) && /^標題\s*[：:]/.test(lines[1] || "")) {
+          content = lines.slice(2).join("\n").trim();
+        }
         if (!content) {
           content = fullStory;
           title = `《${selectedStars[0].name}、${selectedStars[1].name} 與 ${selectedStars[2].name} 的星空任務》`;
@@ -455,12 +473,13 @@
 
         title = (data.title || title).replace(/[#*]/g, '');
         const companions = data.companions || selectedStars.map(star => star.name);
-        currentStoryRecord = { id: `${Date.now()}-${title}`, title, story: content, imageUrl: data.imageUrl || "", date: data.date || new Date().toISOString(), companions };
+        const theme = (data.theme || "月亮郵局的溫柔冒險").trim();
+        currentStoryRecord = { id: `${Date.now()}-${title}`, title, theme, story: content, imageUrl: data.imageUrl || "", date: data.date || new Date().toISOString(), companions };
         document.getElementById("storyTitle").textContent = title;
         document.getElementById("storyContent").textContent = content;
         const banner = document.getElementById("storyBanner");
         if (data.imageUrl) { banner.src = data.imageUrl; banner.classList.add("visible"); } else { banner.removeAttribute("src"); banner.classList.remove("visible"); }
-        document.getElementById("storyMeta").innerHTML = companions.map(name => `<span class="companion-tag">這次的冒險夥伴：${name}</span>`).join("");
+        document.getElementById("storyMeta").innerHTML = `<span class="theme-tag">🏷️ 主題：${theme}</span>` + companions.map(name => `<span class="companion-tag">這次的冒險夥伴：${name}</span>`).join("");
         storyArea.classList.add("active");
         storyArea.scrollIntoView({ behavior: 'smooth' });
 
