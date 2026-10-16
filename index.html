@@ -284,7 +284,6 @@
     <div class="story-meta" id="storyMeta"></div>
     <button class="audio-btn" id="saveStoryBtn" onclick="saveCurrentStory()">💾 收藏到魔法相簿</button>
     <h3 class="story-title" id="storyTitle"></h3>
-    <div class="story-text" id="storyContent"></div>
     <div class="audio-controls">
       <div class="audio-player" aria-label="故事朗讀播放器">
         <button class="audio-btn" id="playAudioBtn" onclick="toggleSpeech()">▶️ 播放</button>
@@ -293,6 +292,7 @@
       </div>
       <div class="audio-status" id="speechStatus" aria-live="polite">準備朗讀</div>
     </div>
+    <div class="story-text" id="storyContent"></div>
   </div>
 
   <div class="album-modal" id="albumModal" onclick="closeAlbumOnBackdrop(event)">
