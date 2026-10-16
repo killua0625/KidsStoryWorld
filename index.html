@@ -341,7 +341,10 @@
     function formatStoryDate(value) {
       const date = value ? new Date(value) : new Date();
       if (Number.isNaN(date.getTime())) return String(value || "");
-      return date.toLocaleDateString("zh-TW", { year: "numeric", month: "2-digit", day: "2-digit" }).replaceAll("/", ".");
+      return date.toLocaleString("zh-TW", {
+        year: "numeric", month: "2-digit", day: "2-digit",
+        hour: "2-digit", minute: "2-digit", hour12: false
+      }).replaceAll("/", ".").replace(", ", " ");
     }
     function showToast(message) {
       const toast = document.getElementById("saveToast"); toast.textContent = message; toast.classList.add("show");
@@ -559,7 +562,12 @@
         document.getElementById("storyTitle").textContent = title;
         document.getElementById("storyContent").textContent = content;
         const banner = document.getElementById("storyBanner");
-        if (data.imageUrl) { banner.src = data.imageUrl; banner.classList.add("visible"); } else { banner.removeAttribute("src"); banner.classList.remove("visible"); }
+        if (data.imageUrl) {
+          banner.src = data.imageUrl;
+          banner.classList.add("visible");
+          // 圖片現在在背景生成，若第一次載入太早，稍後再試一次。
+          banner.onerror = () => setTimeout(() => { banner.src = `${data.imageUrl}?retry=${Date.now()}`; }, 1800);
+        } else { banner.removeAttribute("src"); banner.classList.remove("visible"); }
         document.getElementById("storyMeta").innerHTML = `<span class="theme-tag">🏷️ 主題：${theme}</span>` + companions.map(name => `<span class="companion-tag">這次的冒險夥伴：${name}</span>`).join("");
         storyArea.classList.add("active");
         storyArea.scrollIntoView({ behavior: 'smooth' });
@@ -601,13 +609,23 @@
 
     function chooseStoryVoice() {
       const voices = synth.getVoices();
-      return voices.find(v => /Google.*(國語|普通話|Mandarin)|Microsoft.*(HsiaoChen|Xiaoxiao|Yunxi)/i.test(v.name))
-        || voices.find(v => /zh-TW|zh-CN/i.test(v.lang))
-        || voices.find(v => /^zh/i.test(v.lang));
+      const preferred = [
+        /Microsoft.*(Xiaoxiao|HsiaoChen|HsiaoYu|Yunxi|Yunyang)/i,
+        /Google.*(國語|普通話|Mandarin)/i,
+        /Apple.*(Mei-Jia|Ting-Ting|Sin-Ji)/i
+      ];
+      for (const pattern of preferred) {
+        const match = voices.find(voice => pattern.test(voice.name) && /^zh/i.test(voice.lang));
+        if (match) return match;
+      }
+      return voices.filter(voice => /^zh/i.test(voice.lang))
+        .sort((a, b) => Number(b.localService) - Number(a.localService))[0];
     }
 
     function prepareSpeech() {
-      const text = document.getElementById("storyTitle").textContent + "。\n" + document.getElementById("storyContent").textContent;
+      const text = (document.getElementById("storyTitle").textContent + "。\n" + document.getElementById("storyContent").textContent)
+        .replace(/[「」『』“”\"']/g, "")
+        .replace(/……/g, "，嗯……");
       speechChunks = text.match(/[^。！？!?；;，,\n]+[。！？!?；;，,\n]?/g) || [text];
       speechDurations = speechChunks.map(chunk => Math.max(1.2, chunk.trim().length * 0.28));
       speechTotal = speechDurations.reduce((sum, value) => sum + value, 0);
@@ -655,8 +673,9 @@
       const voice = chooseStoryVoice();
       if (voice) nextUtterance.voice = voice;
       nextUtterance.lang = voice?.lang || 'zh-TW';
-      nextUtterance.rate = 0.7;
-      nextUtterance.pitch = 1.05;
+      nextUtterance.rate = 0.6;
+      nextUtterance.pitch = 1.0;
+      nextUtterance.volume = 1.0;
       speechStartedAt = Date.now();
       clearInterval(speechTimer);
       speechTimer = setInterval(() => {
