@@ -16,7 +16,12 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", sans-serif;
-      background: linear-gradient(180deg, #100b24 0%, #201a45 60%, #151130 100%);
+      background-color: #0b1021;
+      background-image: url('assets/bg-stars-minimal.jpg');
+      background-size: cover;
+      background-position: center top;
+      background-repeat: no-repeat;
+      background-attachment: fixed;
       color: var(--text);
       min-height: 100vh;
       padding: 0 16px 40px;
@@ -26,12 +31,12 @@
     }
     .paper-shell {
       width: 90%;
-      max-width: 480px;
-      margin: 20px auto;
-      padding: max(24px, env(safe-area-inset-top)) 18px 28px;
-      background: #fdf8ee;
+      max-width: 440px;
+      margin: 16px auto 30px;
+      padding: 20px 16px;
+      background: #fdfbf7;
       color: #332e2a;
-      border-radius: 20px;
+      border-radius: 24px;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(253, 230, 138, .35);
     }
     .paper-shell.story-mode {
@@ -43,36 +48,36 @@
       box-shadow: none;
       padding: max(24px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
     }
-    .paper-shell.story-mode > header,
     .paper-shell.story-mode > .grid-container,
     .paper-shell.story-mode > .album-entry,
     .paper-shell.story-mode > .action-panel,
     .paper-shell.story-mode > .loading-spinner { display: none; }
     .paper-shell.story-mode .story-card { max-width: 760px; margin: 0 auto; }
+    body.story-reading > #mainHeader { display: none; }
     header {
       text-align: center;
-      margin-bottom: 16px;
+      margin: 24px auto 0;
       position: relative;
       width: 100%;
       max-width: 480px;
     }
     header h1 {
       font-size: 1.8rem;
-      color: #8a5a16;
+      color: #ffe082;
       margin-bottom: 6px;
       text-shadow: 0 0 16px var(--gold-glow);
     }
     .status-bar {
       font-size: 0.95rem;
-      color: #66584d;
+      color: #e0e6ed;
     }
     .status-bar span {
-      color: #8a5a16;
+      color: #ffe082;
       font-weight: bold;
     }
     .api-status {
       font-size: 0.8rem;
-      color: #806f61;
+      color: #e0e6ed;
       margin-top: 4px;
       cursor: pointer;
       text-decoration: underline;
@@ -86,6 +91,11 @@
       width: 100%;
       max-width: 480px;
       margin-bottom: 16px;
+      margin-left: auto;
+      margin-right: auto;
+      padding: 8px;
+      border-radius: 20px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
     }
     .star-card {
       background: #fffdf8;
@@ -283,17 +293,18 @@
     }
     @media (max-width: 560px) {
       body { padding-left: 10px; padding-right: 10px; }
-      .paper-shell { margin-top: 20px; margin-bottom: 28px; padding-left: 14px; padding-right: 14px; }
+      .paper-shell { margin-top: 16px; margin-bottom: 28px; padding-left: 14px; padding-right: 14px; }
     }
   </style>
 </head>
 <body>
-<main class="paper-shell">
-  <header>
+  <header id="mainHeader">
     <h1>✦ 月亮郵局 AI 故事機 ✦</h1>
     <div class="status-bar" id="statusBar">請選取 <span>3</span> 顆星星夥伴！(已選 0/3)</div>
     <div class="api-status" id="quotaStatus">今日剩餘故事次數：15 次</div>
   </header>
+
+<main class="paper-shell">
 
   <div class="grid-container" id="starGrid"></div>
 
@@ -539,6 +550,7 @@
     function resetSelection() {
       selectedStars = [];
       updateUI();
+      document.body.classList.remove("story-reading");
       document.querySelector(".paper-shell").classList.remove("story-mode");
       document.getElementById("storyArea").classList.remove("active");
       document.getElementById("loader").classList.remove("active");
@@ -559,6 +571,7 @@
       generateBtn.disabled = true;
 
       try {
+        document.body.classList.remove("story-reading");
         const response = await fetch("https://kids-story-api.killua0625.workers.dev/story", {
           method: "POST",
           headers: {
@@ -603,6 +616,7 @@
         } else { banner.removeAttribute("src"); banner.classList.remove("visible"); }
         document.getElementById("storyMeta").innerHTML = `<span class="theme-tag">🏷️ 主題：${theme}</span>` + companions.map(name => `<span class="companion-tag">這次的冒險夥伴：${name}</span>`).join("");
         storyArea.classList.add("active");
+        document.body.classList.add("story-reading");
         document.querySelector(".paper-shell").classList.add("story-mode");
         storyArea.scrollIntoView({ behavior: 'smooth' });
         // 每次產生成功後立即同步到雲端，讓不同手機、電腦都能看到同一份故事紀錄。
