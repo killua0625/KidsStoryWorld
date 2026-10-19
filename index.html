@@ -19,11 +19,36 @@
       background: linear-gradient(180deg, #100b24 0%, #201a45 60%, #151130 100%);
       color: var(--text);
       min-height: 100vh;
-      padding: 20px 16px 40px;
+      padding: 0 16px 40px;
       display: flex;
       flex-direction: column;
       align-items: center;
     }
+    .paper-shell {
+      width: 90%;
+      max-width: 480px;
+      margin: 20px auto;
+      padding: max(24px, env(safe-area-inset-top)) 18px 28px;
+      background: #fdf8ee;
+      color: #332e2a;
+      border-radius: 20px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(253, 230, 138, .35);
+    }
+    .paper-shell.story-mode {
+      width: 100%;
+      max-width: none;
+      min-height: 100vh;
+      margin: 0;
+      border-radius: 0;
+      box-shadow: none;
+      padding: max(24px, env(safe-area-inset-top)) max(18px, env(safe-area-inset-right)) max(28px, env(safe-area-inset-bottom)) max(18px, env(safe-area-inset-left));
+    }
+    .paper-shell.story-mode > header,
+    .paper-shell.story-mode > .grid-container,
+    .paper-shell.story-mode > .album-entry,
+    .paper-shell.story-mode > .action-panel,
+    .paper-shell.story-mode > .loading-spinner { display: none; }
+    .paper-shell.story-mode .story-card { max-width: 760px; margin: 0 auto; }
     header {
       text-align: center;
       margin-bottom: 16px;
@@ -33,21 +58,21 @@
     }
     header h1 {
       font-size: 1.8rem;
-      color: var(--gold);
+      color: #8a5a16;
       margin-bottom: 6px;
       text-shadow: 0 0 16px var(--gold-glow);
     }
     .status-bar {
       font-size: 0.95rem;
-      color: #cbd5e1;
+      color: #66584d;
     }
     .status-bar span {
-      color: var(--gold);
+      color: #8a5a16;
       font-weight: bold;
     }
     .api-status {
       font-size: 0.8rem;
-      color: #94a3b8;
+      color: #806f61;
       margin-top: 4px;
       cursor: pointer;
       text-decoration: underline;
@@ -63,8 +88,8 @@
       margin-bottom: 16px;
     }
     .star-card {
-      background: var(--card-bg);
-      border: 2px solid var(--card-border);
+      background: #fffdf8;
+      border: 2px solid #e6d8c5;
       border-radius: 16px;
       padding: 8px;
       text-align: center;
@@ -75,7 +100,7 @@
     }
     .star-card.selected {
       border-color: var(--gold);
-      background: rgba(253, 230, 138, 0.18);
+      background: #fff1c9;
       box-shadow: 0 0 16px var(--gold-glow);
       transform: translateY(-3px) scale(1.02);
     }
@@ -105,7 +130,7 @@
     }
     .star-card h4 {
       font-size: 0.95rem;
-      color: var(--gold);
+      color: #8a5a16;
       display: none;
       margin-top: 6px;
     }
@@ -139,26 +164,26 @@
       cursor: not-allowed;
     }
     .btn-reset {
-      background: rgba(255, 255, 255, 0.15);
-      color: #fff;
+      background: #e8dccd;
+      color: #4a3b31;
       max-width: 90px;
     }
 
     /* 故事區 */
     .story-card {
       display: none;
-      background: rgba(38, 31, 78, 0.96);
-      border: 1px solid var(--gold);
+      background: transparent;
+      border: 0;
       border-radius: 20px;
       width: 100%;
       max-width: 480px;
       padding: 24px 22px;
-      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      box-shadow: none;
     }
     .story-card.active { display: block; }
     .story-title {
       font-size: 1.45rem;
-      color: var(--gold);
+      color: #7d5214;
       line-height: 1.5;
       margin-bottom: 18px;
       text-align: center;
@@ -167,7 +192,8 @@
       font-size: 1.2rem;
       line-height: 2;
       letter-spacing: 0.025em;
-      color: #fffdf2;
+      color: #332e2a;
+      text-align: left;
       white-space: pre-wrap;
       margin-bottom: 24px;
     }
@@ -212,7 +238,7 @@
     .loading-spinner {
       text-align: center;
       padding: 20px;
-      color: var(--gold);
+      color: #8a5a16;
       font-size: 1.05rem;
       display: none;
     }
@@ -250,15 +276,19 @@
       cursor: pointer;
     }
     .audio-player .audio-btn { padding: 7px 12px; font-size: 0.85rem; }
-    .audio-status { text-align: center; color: #cbd5e1; font-size: 0.82rem; min-height: 1.2em; }
+    .audio-status { text-align: center; color: #806f61; font-size: 0.82rem; min-height: 1.2em; }
     .audio-btn:hover {
       background: var(--gold);
       color: #120e29;
     }
+    @media (max-width: 560px) {
+      body { padding-left: 10px; padding-right: 10px; }
+      .paper-shell { margin-top: 20px; margin-bottom: 28px; padding-left: 14px; padding-right: 14px; }
+    }
   </style>
 </head>
 <body>
-
+<main class="paper-shell">
   <header>
     <h1>✦ 月亮郵局 AI 故事機 ✦</h1>
     <div class="status-bar" id="statusBar">請選取 <span>3</span> 顆星星夥伴！(已選 0/3)</div>
@@ -294,6 +324,7 @@
     </div>
     <div class="story-text" id="storyContent"></div>
   </div>
+</main>
 
   <div class="album-modal" id="albumModal" onclick="closeAlbumOnBackdrop(event)">
     <section class="album-panel">
@@ -508,6 +539,7 @@
     function resetSelection() {
       selectedStars = [];
       updateUI();
+      document.querySelector(".paper-shell").classList.remove("story-mode");
       document.getElementById("storyArea").classList.remove("active");
       document.getElementById("loader").classList.remove("active");
       stopSpeech();
@@ -523,6 +555,7 @@
 
       loader.classList.add("active");
       storyArea.classList.remove("active");
+      document.querySelector(".paper-shell").classList.remove("story-mode");
       generateBtn.disabled = true;
 
       try {
@@ -570,6 +603,7 @@
         } else { banner.removeAttribute("src"); banner.classList.remove("visible"); }
         document.getElementById("storyMeta").innerHTML = `<span class="theme-tag">🏷️ 主題：${theme}</span>` + companions.map(name => `<span class="companion-tag">這次的冒險夥伴：${name}</span>`).join("");
         storyArea.classList.add("active");
+        document.querySelector(".paper-shell").classList.add("story-mode");
         storyArea.scrollIntoView({ behavior: 'smooth' });
         // 每次產生成功後立即同步到雲端，讓不同手機、電腦都能看到同一份故事紀錄。
         void saveCurrentStory(true);
