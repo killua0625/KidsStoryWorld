@@ -87,13 +87,13 @@
     .grid-container {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
+      gap: 8px;
       width: 100%;
       max-width: 480px;
       margin-bottom: 16px;
       margin-left: auto;
       margin-right: auto;
-      padding: 8px;
+      padding: 4px;
       border-radius: 20px;
       box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
     }
@@ -101,18 +101,22 @@
       background: #fffdf8;
       border: 2px solid #e6d8c5;
       border-radius: 16px;
-      padding: 8px;
+      padding: 0;
       text-align: center;
       cursor: pointer;
-      transition: all 0.2s ease;
+      transition: transform 0.22s cubic-bezier(.2, 1.5, .4, 1), box-shadow 0.22s ease, border-color 0.22s ease;
       position: relative;
+      overflow: visible;
       user-select: none;
+      aspect-ratio: 1 / 1;
+      z-index: 1;
     }
     .star-card.selected {
-      border-color: var(--gold);
+      border: 2px solid #ffd166;
       background: #fff1c9;
-      box-shadow: 0 0 16px var(--gold-glow);
-      transform: translateY(-3px) scale(1.02);
+      box-shadow: 0 6px 16px rgba(255, 209, 102, 0.5);
+      transform: scale(1.12);
+      z-index: 5;
     }
     .star-card .badge {
       display: none;
@@ -132,19 +136,35 @@
     .star-card img {
       width: 100%;
       aspect-ratio: 1 / 1;
-      height: auto;
+      height: 100%;
       object-fit: cover;
       border-radius: 12px;
-      margin-bottom: 0;
+      display: block;
+      margin: 0;
       background: rgba(0,0,0,0.2);
     }
     .star-card h4 {
       font-size: 0.95rem;
-      color: #8a5a16;
+      color: #5a3b10;
       display: none;
-      margin-top: 6px;
+      position: absolute;
+      left: 50%;
+      bottom: -13px;
+      transform: translateX(-50%);
+      z-index: 7;
+      white-space: nowrap;
+      margin: 0;
+      padding: 5px 10px;
+      border-radius: 999px;
+      background: rgba(255, 250, 235, 0.94);
+      box-shadow: 0 3px 9px rgba(74, 43, 32, 0.22);
+      pointer-events: none;
     }
-    .star-card.selected h4 { display: block; }
+    .star-card.selected h4 { display: block; animation: label-pop 0.22s ease-out both; }
+    @keyframes label-pop {
+      from { opacity: 0; transform: translateX(-50%) translateY(-5px) scale(.85); }
+      to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
+    }
 
     /* 按鈕面板 */
     .action-panel {
