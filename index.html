@@ -210,6 +210,22 @@
       padding: 24px 22px;
       box-shadow: none;
     }
+    .back-home-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      border: 1px solid #d8b36a;
+      border-radius: 999px;
+      padding: 8px 13px;
+      background: #fff4d6;
+      color: #5d4037;
+      font-size: .9rem;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 3px 9px rgba(74, 43, 32, .16);
+      margin-bottom: 12px;
+    }
+    .back-home-btn:hover { background: #f6c026; }
     .story-card.active { display: block; }
     .story-title {
       font-size: 1.45rem;
@@ -289,27 +305,49 @@
       cursor: pointer;
       font-weight: bold;
     }
+    #saveStoryBtn {
+      border: 1px solid #d8b36a;
+      background: #fff1c9;
+      color: #5d4037;
+      box-shadow: 0 3px 9px rgba(74, 43, 32, .14);
+    }
     .audio-player {
       display: grid;
       grid-template-columns: auto 1fr auto;
       align-items: center;
       gap: 10px;
       padding: 10px 12px;
-      border: 1px solid rgba(253, 230, 138, 0.5);
+      border: 1px solid #e3c982;
       border-radius: 16px;
-      background: rgba(0, 0, 0, 0.18);
+      background: #f5efeb;
+      box-shadow: inset 0 1px 2px rgba(74, 43, 32, .06);
     }
-    .audio-time { min-width: 42px; color: #cbd5e1; font-size: 0.78rem; text-align: center; }
+    .audio-time { min-width: 42px; color: #555; font-size: 0.78rem; text-align: center; }
     .audio-progress {
       width: 100%;
       accent-color: var(--gold);
       cursor: pointer;
     }
+    .audio-player .audio-progress { accent-color: #f6c026; }
     .audio-player .audio-btn { padding: 7px 12px; font-size: 0.85rem; }
     .audio-status { text-align: center; color: #806f61; font-size: 0.82rem; min-height: 1.2em; }
     .audio-btn:hover {
       background: var(--gold);
       color: #120e29;
+    }
+    .audio-player .audio-btn {
+      border: 0;
+      background: #f6c026;
+      color: #4a3e3d;
+      box-shadow: 0 2px 5px rgba(74, 43, 32, .16);
+    }
+    .story-end-btn {
+      width: 100%;
+      margin-top: 8px;
+      border: 0;
+      background: #f6c026;
+      color: #4a3e3d;
+      box-shadow: 0 4px 10px rgba(74, 43, 32, .18);
     }
     @media (max-width: 560px) {
       body { padding-left: 10px; padding-right: 10px; }
@@ -341,6 +379,7 @@
   <div class="loading-spinner" id="loader">✨ 月亮郵局正在為三顆星星編織全新故事中，請稍候...</div>
 
   <div class="story-card" id="storyArea">
+    <button class="back-home-btn" type="button" onclick="backHome()">🔙 回首頁</button>
     <img class="story-banner" id="storyBanner" alt="本次冒險插畫">
     <div class="story-meta" id="storyMeta"></div>
     <button class="audio-btn" id="saveStoryBtn" onclick="saveCurrentStory()">💾 收藏到魔法相簿</button>
@@ -354,6 +393,7 @@
       <div class="audio-status" id="speechStatus" aria-live="polite">準備朗讀</div>
     </div>
     <div class="story-text" id="storyContent"></div>
+    <button class="btn story-end-btn" type="button" onclick="backHome()">✨ 再聽一個故事（回到首頁）</button>
   </div>
 </main>
 
@@ -577,6 +617,11 @@
       stopSpeech();
     }
 
+    function backHome() {
+      resetSelection();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
     async function handleGenerate() {
       if (selectedStars.length !== 3) return;
       stopSpeech();
@@ -797,6 +842,5 @@
       document.getElementById("speechStatus").textContent = "準備朗讀";
     }
   </script>
-  
 </body>
 </html>
